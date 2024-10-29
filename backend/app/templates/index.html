@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Crypto Trading Simulator - Login</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 30px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .login-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .response {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+        }
+        .error {
+            color: #dc3545;
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
+        .success {
+            color: #28a745;
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Crypto Trading Simulator</h1>
+        
+        <div class="login-container">
+            <div id="g_id_onload"
+                data-client_id="{{ google_client_id }}"
+                data-context="signin"
+                data-ux_mode="popup"
+                data-callback="handleCredentialResponse"
+                data-auto_prompt="false">
+            </div>
+            
+            <div class="g_id_signin"
+                data-type="standard"
+                data-size="large"
+                data-theme="outline"
+                data-text="sign_in_with"
+                data-shape="rectangular"
+                data-logo_alignment="left">
+            </div>
+        </div>
+
+        <div id="response" class="response" style="display: none;"></div>
+    </div>
+
+    <script>
+        function handleCredentialResponse(response) {
+            console.log("Google response received");
+            
+            fetch('/api/auth/google', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    token: response.credential
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Success:', data);
+                const responseDiv = document.getElementById('response');
+                responseDiv.style.display = 'block';
+                
+                if (data.error) {
+                    responseDiv.className = 'response error';
+                    responseDiv.innerHTML = `<pre>Error: ${data.error}</pre>`;
+                } else {
+                    responseDiv.className = 'response success';
+                    responseDiv.innerHTML = `
+                        <pre>Login successful!
+                        Welcome, ${data.user.username}
+                        Balance: $${data.user.current_balance.toLocaleString()}</pre>`;
+                    
+                    localStorage.setItem('access_token', data.access_token);
+                    localStorage.setItem('refresh_token', data.refresh_token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                }
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                const responseDiv = document.getElementById('response');
+                responseDiv.style.display = 'block';
+                responseDiv.className = 'response error';
+                responseDiv.innerHTML = `<pre>Error: ${error.message}</pre>`;
+            });
+        }
+    </script>
+</body>
+</html>
